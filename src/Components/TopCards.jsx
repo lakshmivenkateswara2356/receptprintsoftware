@@ -12,7 +12,7 @@ function Card({ title, value, icon }) {
   );
 }
 
-export default function TopCards(){
+ function TopCards(){
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card title="Total sales Today" value="₹775.00" icon="📈" />
@@ -21,3 +21,4 @@ export default function TopCards(){
     </div>
   );
 }
+export default TopCards ;

@@ -11,7 +11,7 @@ const dummyItems = [
   { id: 4, name: "Chicken 65", category: "Starters", price: 150, image: "https://images.unsplash.com/photo-1598514982846-4ff76dbdff98?w=400" },
 ];
 
-export default function Receipts() {
+function Receipts() {
   const [filter, setFilter] = useState("All");
   const [receipt, setReceipt] = useState([]);
   const [showPayment, setShowPayment] = useState(false);
@@ -177,3 +177,4 @@ export default function Receipts() {
     </div>
   );
 }
+export default Receipts ;

@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function PrintReceipt() {
+function PrintReceipt() {
   const location = useLocation();
   const navigate = useNavigate();
   const data = location.state;
@@ -120,3 +120,4 @@ export default function PrintReceipt() {
     </div>
   );
 }
+export default PrintReceipt ;

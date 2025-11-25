@@ -8,7 +8,7 @@ import {
   Legend,
 } from "recharts";
 
-export default function SummaryPanel() {
+function SummaryPanel() {
   
   const [summary, setSummary] = useState({
     sales: 775,
@@ -90,3 +90,4 @@ export default function SummaryPanel() {
     </div>
   );
 }
+export default SummaryPanel ;

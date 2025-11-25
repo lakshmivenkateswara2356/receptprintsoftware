@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function MenuItems() {
+function MenuItems() {
   const [categories, setCategories] = useState(["All", "Veg", "Non-Veg", "Starters"]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [items, setItems] = useState([]);
@@ -318,3 +318,4 @@ function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenA
     </div>
   );
 }
+export default MenuItems ;

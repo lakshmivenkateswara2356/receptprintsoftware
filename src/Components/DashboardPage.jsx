@@ -3,7 +3,7 @@ import TopCards from './TopCards';
 import SummaryPanel from './SummaryPanel';
 
 
-export default function DashboardPage(){
+ function DashboardPage(){
   return (
     <div className="p-6 space-y-6">
       <div className="card p-6 bg-gradient-to-r from-pink-400 to-orange-400 text-white">
@@ -24,3 +24,4 @@ export default function DashboardPage(){
     </div>
   );
 }
+export default DashboardPage ;

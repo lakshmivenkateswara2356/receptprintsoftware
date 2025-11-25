@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Receipt({ items }) {
+function Receipt({ items }) {
   const total = items.reduce((sum, i) => sum + i.qty * i.price, 0);
 
   return (
@@ -26,3 +26,4 @@ export default function Receipt({ items }) {
     </div>
   );
 }
+export default Receipt ;

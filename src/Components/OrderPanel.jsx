@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function OrderPanel({ items, onAdd, onRemove }) {
+function OrderPanel({ items, onAdd, onRemove }) {
   return (
     <div style={{ padding: "20px", flex: 1 }}>
       <h2>Order Items</h2>
@@ -32,3 +32,4 @@ export default function OrderPanel({ items, onAdd, onRemove }) {
     </div>
   );
 }
+export default OrderPanel;
