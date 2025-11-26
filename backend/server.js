@@ -1,49 +1,31 @@
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
+const mongoose = require("mongoose");
+const path = require("path");
+
+// Import Routes
+const recipeRoutes=require("./routes/recepi")
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-let items = [];
+// Serve uploaded images as static files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Routes
+app.use("/api/recipe-items", recipeRoutes);
 
-app.get("/", (req, res) => {
-  res.send("backend data coming...");
+// Database connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.log("Error connecting to MongoDB:", err));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-
-app.get("/items", (req, res) => {
-  res.json(items);
-});
-
-
-app.post("/items", (req, res) => {
-  const item = req.body;
-
-  if (!item.name || !item.category || !item.price) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
-
-  item.id = Date.now();
-  items.push(item);
-
-  res.json({ message: "Item added successfully", item });
-});
-
-const handleDeleteItem = async (id) => {
-  try {
-    const res = await fetch(`http://localhost:5000/items/${id}`, {
-      method: "DELETE",
-    });
-    const data = await res.json();
-    console.log(data.message); 
-    setItems(items.filter((item) => item.id !== id));
-  } catch (error) {
-    console.log("Error deleting item:", error);
-  }
-};
-
-
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
