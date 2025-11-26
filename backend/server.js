@@ -7,17 +7,17 @@ app.use(express.json());
 
 let items = [];
 
-// test
+
 app.get("/", (req, res) => {
   res.send("backend data coming...");
 });
 
-// GET items
+
 app.get("/items", (req, res) => {
   res.json(items);
 });
 
-// ADD item
+
 app.post("/items", (req, res) => {
   const item = req.body;
 
@@ -37,8 +37,7 @@ const handleDeleteItem = async (id) => {
       method: "DELETE",
     });
     const data = await res.json();
-    console.log(data.message); // optional: log success message
-    // update frontend state
+    console.log(data.message); 
     setItems(items.filter((item) => item.id !== id));
   } catch (error) {
     console.log("Error deleting item:", error);

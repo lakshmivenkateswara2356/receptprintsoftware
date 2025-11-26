@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-// Item Modal Component
+
 function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenAddCategory }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
@@ -100,7 +100,7 @@ function MenuItems() {
 
   const [editingItem, setEditingItem] = useState(null);
 
-  // Fetch items from backend
+
   const fetchItems = async () => {
     try {
       const res = await fetch("http://localhost:5000/items");
@@ -115,7 +115,7 @@ function MenuItems() {
     fetchItems();
   }, []);
 
-  // Add Category
+
   const handleAddCategory = () => {
     if (!tempCategory.trim()) return alert("Please enter category name");
     setCategories([...categories, tempCategory.trim()]);
@@ -123,7 +123,7 @@ function MenuItems() {
     setOpenAddCategory(false);
   };
 
-  // Add Item (POST)
+
   const handleAddItem = async () => {
     if (!newItem.name.trim()) return alert("Enter item name");
     if (!newItem.category.trim()) return alert("Select category");
@@ -150,13 +150,13 @@ function MenuItems() {
     setOpenAddItem(false);
   };
 
-  // Delete Item
+
   const handleDeleteItem = async (id) => {
     await fetch(`http://localhost:5000/items/${id}`, { method: "DELETE" });
     setItems(items.filter((item) => item.id !== id));
   };
 
-  // Update Item
+
   const handleUpdateItem = async () => {
     const updatedList = items.map((it) =>
       it.id === editingItem.id ? editingItem : it
@@ -180,7 +180,7 @@ function MenuItems() {
         <button onClick={() => setOpenAddItem(true)} className="px-4 py-2 bg-black text-white rounded">+ Add Item</button>
       </div>
 
-      {/* Categories */}
+      
       <div className="flex gap-3 mb-5 overflow-x-auto">
         {categories.map((cat) => (
           <button key={cat} onClick={() => setActiveCategory(cat)}
@@ -191,7 +191,7 @@ function MenuItems() {
         <button onClick={() => setOpenAddCategory(true)} className="px-4 py-2 bg-green-600 text-white rounded-full">+ Add Category</button>
       </div>
 
-      {/* Items Grid */}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {filteredItems.map((item) => (
           <div key={item.id} className="border rounded-lg p-4 shadow-sm flex flex-col">
@@ -210,7 +210,7 @@ function MenuItems() {
         ))}
       </div>
 
-      {/* Add/Edit Modals */}
+      
       {openAddItem && (
         <ItemModal
           title="Add New Item"
