@@ -4,6 +4,19 @@ const API_URL = "http://localhost:5000/api/recipe-items";
 
 // Modal for Add/Edit Item
 function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenAddCategory }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await onSave();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded-lg w-96">
@@ -34,14 +47,6 @@ function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenA
 
         <input
           type="number"
-          placeholder="Quantity"
-          className="w-full p-2 border rounded mb-3"
-          value={item.quantity}
-          onChange={(e) => setItem({ ...item, quantity: e.target.value })}
-        />
-
-        <input
-          type="number"
           placeholder="Price"
           className="w-full p-2 border rounded mb-3"
           value={item.price}
@@ -54,14 +59,6 @@ function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenA
           className="w-full p-2 border rounded mb-3"
           value={item.description}
           onChange={(e) => setItem({ ...item, description: e.target.value })}
-        />
-
-        <input
-          type="number"
-          placeholder="Tax (%)"
-          className="w-full p-2 border rounded mb-3"
-          value={item.tax}
-          onChange={(e) => setItem({ ...item, tax: e.target.value })}
         />
 
         <label className="font-semibold block mb-1">Upload Image</label>
@@ -84,8 +81,38 @@ function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenA
         )}
 
         <div className="flex justify-end gap-3 mt-4">
-          <button className="px-4 py-2 border rounded" onClick={onClose}>Cancel</button>
-          <button className="px-4 py-2 bg-black text-white rounded" onClick={onSave}>Save</button>
+          <button className="px-4 py-2 border rounded" onClick={onClose} disabled={loading}>
+            Cancel
+          </button>
+          <button
+            className="px-4 py-2 bg-black text-white rounded flex items-center justify-center gap-2"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
+                ></path>
+              </svg>
+            )}
+            {loading ? "Saving..." : "Save"}
+          </button>
         </div>
       </div>
     </div>
@@ -94,7 +121,7 @@ function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenA
 
 // Main MenuItems Component
 function MenuItems() {
-  const [categories, setCategories] = useState(["All", "Veg", "Non-Veg", "Starters"]);
+  const [categories, setCategories] = useState(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [items, setItems] = useState([]);
 
@@ -115,12 +142,15 @@ function MenuItems() {
 
   const [editingItem, setEditingItem] = useState(null);
 
-  // Fetch items from backend
+  // Fetch items from backend and set dynamic categories
   const fetchItems = async () => {
     try {
       const res = await fetch(API_URL);
       const data = await res.json();
       setItems(data);
+
+      const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
+      setCategories(["All", ...uniqueCategories]);
     } catch (err) {
       console.error(err);
     }
@@ -130,7 +160,7 @@ function MenuItems() {
     fetchItems();
   }, []);
 
-  // Add new category
+  // Add new category manually
   const handleAddCategory = () => {
     if (!tempCategory.trim()) return alert("Enter category name");
     setCategories([...categories, tempCategory.trim()]);
@@ -164,6 +194,11 @@ function MenuItems() {
       });
       const saved = await res.json();
       setItems([...items, saved]);
+
+      if (!categories.includes(saved.category)) {
+        setCategories(prev => [...prev, saved.category]);
+      }
+
       setNewItem({ name: "", quantity: 1, category: "", price: "", description: "", tax: 0, imageFile: null, image: "" });
       setOpenAddItem(false);
     } catch (err) {
@@ -186,6 +221,11 @@ function MenuItems() {
       });
       const updated = await res.json();
       setItems(items.map(i => i._id === updated._id ? updated : i));
+
+      if (!categories.includes(updated.category)) {
+        setCategories(prev => [...prev, updated.category]);
+      }
+
       setEditingItem(null);
     } catch (err) {
       console.error(err);
@@ -214,7 +254,6 @@ function MenuItems() {
             {cat}
           </button>
         ))}
-        <button className="px-4 py-2 bg-green-600 text-white rounded-full" onClick={() => setOpenAddCategory(true)}>+ Add Category</button>
       </div>
 
       {/* Items Grid */}

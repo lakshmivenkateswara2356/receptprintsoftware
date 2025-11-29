@@ -4,10 +4,10 @@ function Sidebar({ active }) {
   const menu = [
     { name: "Dashboard", path: "/" },
     { name: "Receipts", path: "/receipts" },
-    { name: "New Order", path: "/new-order" },
+    { name: "Reports", path: "/new-order" },
     { name: "Menu Items", path: "/menu-items" },
-    { name: "Customers", path: "/customers" },
-    { name: "Reports", path: "/reports" },
+    // { name: "Customers", path: "/customers" },
+    // { name: "Reports", path: "/reports" },
     { name: "Settings", path: "/settings" },
   ];
 
