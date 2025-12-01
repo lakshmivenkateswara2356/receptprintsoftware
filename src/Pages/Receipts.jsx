@@ -1,15 +1,14 @@
-// src/Pages/Receipts.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const categories = ["All", "Veg", "Non-Veg", "Starters"];
-
 export default function Receipts() {
   const [menuItems, setMenuItems] = useState([]);
-  const [settings, setSettings] = useState(null);
+  const [categories, setCategories] = useState(["All"]); // Initialize with "All"
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const [receipt, setReceipt] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [customerName, setCustomerName] = useState("");
@@ -18,17 +17,34 @@ export default function Receipts() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Fetch menu items
     axios.get("http://localhost:5000/api/recipe-items")
-      .then(res => setMenuItems(res.data))
+      .then(res => {
+        setMenuItems(res.data);
+
+        // Extract unique categories dynamically from items
+        const uniqueCategories = Array.from(new Set(res.data.map(item => item.category)));
+        setCategories(["All", ...uniqueCategories]);
+      })
       .catch(err => console.error(err));
 
+    // Fetch settings
     axios.get("http://localhost:5000/api/settings")
       .then(res => setSettings(res.data))
       .catch(err => console.error(err));
   }, []);
 
-  const filteredItems = filter === "All" ? menuItems : menuItems.filter(i => i.category === filter);
+  // Filter + search logic
+  const filteredItems = menuItems
+    .filter(item => filter === "All" || item.category === filter)
+    .filter(item => {
+      if (!search) return true;
+      const lower = search.toLowerCase();
+      return item.name?.toLowerCase().includes(lower) ||
+             (item.itemNumber !== undefined && item.itemNumber.toString().includes(lower));
+    });
 
+  // Receipt actions
   const addItem = (item) => setReceipt(prev => {
     const ex = prev.find(p => p._id === item._id);
     if (ex) return prev.map(p => p._id === item._id ? { ...p, qty: p.qty + 1 } : p);
@@ -78,6 +94,7 @@ export default function Receipts() {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Receipts</h1>
 
+      {/* Category Filter */}
       <div className="flex gap-3">
         {categories.map(cat => (
           <button key={cat} onClick={() => setFilter(cat)}
@@ -87,18 +104,17 @@ export default function Receipts() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredItems.map(item => (
-          <div key={item._id} className="bg-white shadow-md rounded-xl p-3 space-y-2">
-            <img src={`http://localhost:5000${item.image}`} alt={item.name} className="w-full h-32 object-cover rounded-lg"/>
-            <h2 className="font-semibold">{item.name}</h2>
-            <p className="text-gray-600">₹{item.price}</p>
-            <button onClick={() => addItem(item)} className="px-3 py-1 bg-black text-white rounded">Add</button>
-          </div>
-        ))}
+      {/* Search Input */}
+      <div className="mt-3">
+        <input
+          type="text"
+          placeholder="Search by name or number..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
       </div>
-
-      {/* Receipt Panel */}
+          {/* Receipt Panel */}
       <div className="bg-white shadow-xl rounded-xl p-6 mt-6">
         <h2 className="text-xl font-bold mb-4">Receipt Details</h2>
         {receipt.length === 0 ? <p className="text-gray-500">No items added yet.</p> : (
@@ -132,6 +148,20 @@ export default function Receipts() {
           </div>
         )}
       </div>
+
+      {/* Menu Items */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+        {filteredItems.map(item => (
+          <div key={item._id} className="bg-white shadow-md rounded-xl p-3 space-y-2">
+            <img src={`http://localhost:5000${item.image}`} alt={item.name} className="w-full h-32 object-cover rounded-lg"/>
+            <h2 className="font-semibold">{item.itemNumber ? item.itemNumber + ". " : ""}{item.name}</h2>
+            <p className="text-gray-600">₹{item.price}</p>
+            <button onClick={() => addItem(item)} className="px-3 py-1 bg-black text-white rounded">Add</button>
+          </div>
+        ))}
+      </div>
+
+  
 
       {/* Payment Popup */}
       {showPayment && (
