@@ -35,6 +35,7 @@ function PrintReceipt() {
         
         <div className="text-center">
           <h2 className="text-xl font-bold">{restaurant.name}</h2>
+          <p >Family Restaurent</p>
           <div className="text-sm">{restaurant.address}</div>
           <div className="text-sm">GST: {restaurant.gst}</div>
         </div>
