@@ -29,12 +29,14 @@ export default function Receipts() {
       .catch((err) => console.error("Menu fetch error:", err));
   }, []);
 
+
   // Fetch settings
   useEffect(() => {
     axios
       .get("http://localhost:5000/api/settings")
       .then((res) => setSettings(res.data || {}))
       .catch((err) => console.error("Settings fetch error:", err));
+
   }, []);
 
   // Filter + search logic
@@ -104,6 +106,7 @@ export default function Receipts() {
       totals: { totalQty, subTotal, gstAmount, grandTotal, gstPercent: GST_PERCENT },
       date: new Date().toISOString(),
     };
+
 
     // Save order to backend
     axios
@@ -226,6 +229,7 @@ export default function Receipts() {
 
       {/* Menu Items */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+
         {filteredItems.map((item) => (
           <div
             key={item.id}
@@ -237,6 +241,7 @@ export default function Receipts() {
               className="w-full h-32 object-cover rounded-lg"
             />
             <h2 className="font-semibold">{item.name}</h2>
+
             <p className="text-gray-600">₹{item.price}</p>
             <button
               onClick={() => addItem(item)}
