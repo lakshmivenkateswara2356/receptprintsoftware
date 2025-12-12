@@ -2,42 +2,41 @@ const express = require("express");
 const router = express.Router();
 const Order = require("../models/Order");
 
-// POST - Create Order
+// CREATE ORDER
 router.post("/", async (req, res) => {
   try {
-    const order = new Order(req.body);
-    const saved = await order.save();
-    res.status(201).json(saved);
+    const result = await Order.createOrder(req.body);
+    res.status(201).json({ orderId: result.orderId });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// GET - All orders
+// GET ALL ORDERS
 router.get("/", async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const orders = await Order.getAllOrders();
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// GET - Filter by week/month/year
+// FILTER ORDERS
 router.get("/filter", async (req, res) => {
-  const { type } = req.query;
-
-  let startDate = new Date();
-  if (type === "weekly") startDate.setDate(startDate.getDate() - 7);
-  if (type === "monthly") startDate.setMonth(startDate.getMonth() - 1);
-  if (type === "yearly") startDate.setFullYear(startDate.getFullYear() - 1);
-
   try {
-    const orders = await Order.find({
-      date: { $gte: startDate },
-    }).sort({ date: -1 });
-
+    const orders = await Order.filterOrders(req.query.type);
     res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET ORDER ITEMS
+router.get("/:id/items", async (req, res) => {
+  try {
+    const items = await Order.getOrderItems(req.params.id);
+    res.json(items);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

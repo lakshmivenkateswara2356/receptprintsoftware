@@ -22,29 +22,33 @@ function TopCards() {
     const fetchOrders = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/orders");
-        const orders = res.data;
+        const orders = res.data || [];
 
-        const today = new Date();
-        const todayOrders = orders.filter(order => {
-          const orderDate = new Date(order.date);
-          return (
-            orderDate.getFullYear() === today.getFullYear() &&
-            orderDate.getMonth() === today.getMonth() &&
-            orderDate.getDate() === today.getDate()
-          );
+        const parseDate = (str) => (str ? new Date(str.replace(" ", "T")) : null);
+
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        const todayOrders = orders.filter((o) => {
+          const d = parseDate(o.date);
+          return d && d >= start && d <= end;
         });
 
-        const sales = todayOrders.reduce((sum, order) => sum + order.totals.grandTotal, 0);
-        const bills = todayOrders.length;
+        // FIXED: using backend's grand_total field
+        const sales = todayOrders.reduce(
+          (sum, o) => sum + Number(o.grand_total || 0),
+          0
+        );
 
-        // Count unique customer names for new customers today
-        const customerSet = new Set(todayOrders.map(o => o.customer.name || "Walk-in"));
+        const bills = todayOrders.length;
+        const customerSet = new Set(todayOrders.map((o) => o.customer?.name || "Walk-in"));
+
         setTotalSales(sales);
         setTotalBills(bills);
-        
-
+        setNewCustomers(customerSet.size);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch orders:", err);
       }
     };
 
@@ -55,7 +59,7 @@ function TopCards() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card title="Total Sales Today" value={`₹${totalSales.toFixed(2)}`} icon="📈" />
       <Card title="Total Bills Today" value={totalBills} icon="💵" />
-      <Card title="New Customers Today" value={totalBills} icon="👥" />
+      <Card title="New Customers Today" value={newCustomers} icon="👥" />
     </div>
   );
 }

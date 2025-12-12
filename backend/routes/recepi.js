@@ -5,32 +5,36 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+// ---- Upload Settings ----
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
-// GET All Items
+// ---------------------- ROUTES ----------------------
+
+// GET ALL
 router.get("/", async (req, res) => {
   try {
-    const items = await RecipeItem.find();
+    const items = await RecipeItem.getAll();
     res.json(items);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// POST Add Item
+// CREATE
 router.post("/", upload.single("image"), async (req, res) => {
   try {
     const { name, quantity, category, price, description, tax } = req.body;
     if (!req.file) return res.status(400).json({ message: "Image required" });
 
-    const item = new RecipeItem({
+    const newItem = {
       name,
       quantity,
       category,
@@ -38,42 +42,48 @@ router.post("/", upload.single("image"), async (req, res) => {
       description,
       tax,
       image: `/uploads/${req.file.filename}`,
-    });
+    };
 
-    const savedItem = await item.save();
-    res.status(201).json(savedItem);
+    const saved = await RecipeItem.create(newItem);
+    res.status(201).json(saved);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// PATCH Update Item
+// UPDATE
 router.patch("/:id", upload.single("image"), async (req, res) => {
   try {
-    const item = await RecipeItem.findById(req.params.id);
-    if (!item) return res.status(404).json({ message: "Item not found" });
+    const existing = await RecipeItem.getById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Item not found" });
 
-    if (req.file && item.image) {
-      const oldPath = path.join(__dirname, `..${item.image}`);
+    // Remove old image if replaced
+    if (req.file && existing.image) {
+      const oldPath = path.join(__dirname, `..${existing.image}`);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    const updatedData = {
-      ...req.body,
-      image: req.file ? `/uploads/${req.file.filename}` : item.image,
+    const updated = {
+      name: req.body.name || existing.name,
+      quantity: req.body.quantity || existing.quantity,
+      category: req.body.category || existing.category,
+      price: req.body.price || existing.price,
+      description: req.body.description || existing.description,
+      tax: req.body.tax || existing.tax,
+      image: req.file ? `/uploads/${req.file.filename}` : existing.image,
     };
 
-    const updatedItem = await RecipeItem.findByIdAndUpdate(req.params.id, updatedData, { new: true });
-    res.json(updatedItem);
+    const result = await RecipeItem.update(req.params.id, updated);
+    res.json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// DELETE Item
+// DELETE
 router.delete("/:id", async (req, res) => {
   try {
-    const item = await RecipeItem.findById(req.params.id);
+    const item = await RecipeItem.getById(req.params.id);
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     if (item.image) {
@@ -81,30 +91,25 @@ router.delete("/:id", async (req, res) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
-    await RecipeItem.findByIdAndDelete(req.params.id);
+    await RecipeItem.delete(req.params.id);
     res.json({ message: "Item deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Quantity +1
+// INCREASE
 router.post("/:id/increase", async (req, res) => {
-  const item = await RecipeItem.findById(req.params.id);
-  if (!item) return res.status(404).json({ message: "Item not found" });
-  item.quantity += 1;
-  await item.save();
-  res.json(item);
+  await RecipeItem.increaseQuantity(req.params.id);
+  const updated = await RecipeItem.getById(req.params.id);
+  res.json(updated);
 });
 
-// Quantity -1
+// DECREASE
 router.post("/:id/decrease", async (req, res) => {
-  const item = await RecipeItem.findById(req.params.id);
-  if (!item) return res.status(404).json({ message: "Item not found" });
-  if (item.quantity > 0) item.quantity -= 1;
-  await item.save();
-  res.json(item);
+  await RecipeItem.decreaseQuantity(req.params.id);
+  const updated = await RecipeItem.getById(req.params.id);
+  res.json(updated);
 });
 
 module.exports = router;
-
