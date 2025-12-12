@@ -2,31 +2,31 @@ const express = require("express");
 const router = express.Router();
 const Settings = require("../models/Settings");
 
-// GET Settings (fetch first)
+// GET Settings
 router.get("/", async (req, res) => {
   try {
-    const settings = await Settings.findOne();
-    res.json(settings);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const settings = await Settings.getSettings();
+    res.json(settings || {});
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
-// UPDATE or CREATE Settings
+// CREATE or UPDATE Settings
 router.post("/", async (req, res) => {
   try {
-    let settings = await Settings.findOne();
-    
-    if (settings) {
-      const updated = await Settings.findOneAndUpdate({}, req.body, { new: true });
+    const existing = await Settings.getSettings();
+
+    if (existing) {
+      const updated = await Settings.updateSettings(req.body);
       return res.json(updated);
     }
-    
-    settings = new Settings(req.body);
-    const saved = await settings.save();
-    res.json(saved);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+
+    const created = await Settings.createSettings(req.body);
+    res.json(created);
+
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 

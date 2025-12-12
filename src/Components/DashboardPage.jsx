@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import TopCards from "./TopCards";
-import SummaryPanel from "./SummaryPanel";
+import TopCards from "../Components/TopCards";
+import SummaryPanel from "../Components/SummaryPanel";
 import {
   LineChart,
   Line,
@@ -24,17 +24,18 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch weather
+  // Fetch weather (optional) - keep as-is (replace API key if you want)
   useEffect(() => {
     const fetchWeather = async () => {
       try {
-        const key = "YOUR_API_KEY"; // Replace with your OpenWeather API key
+        const key = "YOUR_API_KEY"; // Replace with your OpenWeather API key or remove this effect
         const city = "Hyderabad";
         const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${key}`;
         const res = await axios.get(url);
         setWeather(res.data);
       } catch (err) {
-        console.log("Weather error:", err);
+        // silently fail if no key
+        // console.log("Weather error:", err);
       }
     };
     fetchWeather();
@@ -45,107 +46,137 @@ export default function DashboardPage() {
     const fetchOrders = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/orders");
-        setOrders(res.data);
+        console.log("Fetched orders:", res.data);
+        // Normalize/defensive mapping: ensure date field is present and parseable
+        const normalized = (res.data || []).map((o) => {
+          // backend date example: "2025-12-12 03:34:26"
+          let rawDate = o.date || o.created_at || o.createdAt || null;
+          let parsedDate = null;
+          if (rawDate) {
+            // Replace space between date and time with 'T' for safe ISO parsing
+            // If it already contains 'T' this will be a no-op.
+            const isoLike = String(rawDate).replace(" ", "T");
+            parsedDate = new Date(isoLike);
+            // Fallback: if invalid date, try direct new Date(raw)
+            if (isNaN(parsedDate.getTime())) parsedDate = new Date(rawDate);
+          }
+          return {
+            ...o,
+            __parsedDate: parsedDate // keep parsed date for chart filters
+          };
+        });
+
+        setOrders(normalized);
       } catch (err) {
-        console.error(err);
+        console.error("Fetch orders error:", err);
       }
     };
     fetchOrders();
   }, []);
 
-  // Generate chart data based on filter
+  // Helper to get grand total from backend response
+  // Accepts either grand_total (snake_case) OR totals?.grandTotal (old format)
+  const safeGrandTotal = (o) => {
+    if (!o) return 0;
+    if (typeof o.grand_total === "number") return o.grand_total;
+    if (o.grandTotal) return o.grandTotal;
+    if (o.totals && typeof o.totals.grandTotal === "number") return o.totals.grandTotal;
+    // sometimes backend uses "grandTotal" camelCase or other keys
+    return Number(o.grand_total) || Number(o.grandTotal) || 0;
+  };
+
+  // Generate chart data
   useEffect(() => {
-    if (!orders.length) return;
+    if (!orders.length) {
+      setChartData([]);
+      return;
+    }
 
     const now = new Date();
     let data = [];
 
     switch (filter) {
-      case "today":
-        {
-          // Group by hour
-          const hours = Array.from({ length: 24 }, (_, i) => i); // 0-23
-          data = hours.map(hour => {
-            const sales = orders
-              .filter(o => {
-                const d = new Date(o.date);
-                return (
-                  d.getFullYear() === now.getFullYear() &&
-                  d.getMonth() === now.getMonth() &&
-                  d.getDate() === now.getDate() &&
-                  d.getHours() === hour
-                );
-              })
-              .reduce((sum, o) => sum + o.totals.grandTotal, 0);
-            return { time: `${hour}:00`, sales };
-          });
-        }
+      case "today": {
+        data = Array.from({ length: 24 }, (_, hour) => {
+          const sales = orders
+            .filter((o) => {
+              const d = o.__parsedDate ? o.__parsedDate : new Date(o.date || o.created_at || o.createdAt);
+              if (!d || isNaN(d.getTime())) return false;
+              return (
+                d.getFullYear() === now.getFullYear() &&
+                d.getMonth() === now.getMonth() &&
+                d.getDate() === now.getDate() &&
+                d.getHours() === hour
+              );
+            })
+            .reduce((sum, o) => sum + safeGrandTotal(o), 0);
+          return { time: `${hour}:00`, sales };
+        });
         break;
+      }
 
-      case "yesterday":
-        {
-          const yesterday = new Date(now);
-          yesterday.setDate(now.getDate() - 1);
-          const hours = Array.from({ length: 24 }, (_, i) => i);
-          data = hours.map(hour => {
-            const sales = orders
-              .filter(o => {
-                const d = new Date(o.date);
-                return (
-                  d.getFullYear() === yesterday.getFullYear() &&
-                  d.getMonth() === yesterday.getMonth() &&
-                  d.getDate() === yesterday.getDate() &&
-                  d.getHours() === hour
-                );
-              })
-              .reduce((sum, o) => sum + o.totals.grandTotal, 0);
-            return { time: `${hour}:00`, sales };
-          });
-        }
+      case "yesterday": {
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        data = Array.from({ length: 24 }, (_, hour) => {
+          const sales = orders
+            .filter((o) => {
+              const d = o.__parsedDate ? o.__parsedDate : new Date(o.date || o.created_at || o.createdAt);
+              if (!d || isNaN(d.getTime())) return false;
+              return (
+                d.getFullYear() === yesterday.getFullYear() &&
+                d.getMonth() === yesterday.getMonth() &&
+                d.getDate() === yesterday.getDate() &&
+                d.getHours() === hour
+              );
+            })
+            .reduce((sum, o) => sum + safeGrandTotal(o), 0);
+          return { time: `${hour}:00`, sales };
+        });
         break;
+      }
 
-      case "week":
-        {
-          // Group by day of current week (Mon-Sun)
-          const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-          const startOfWeek = new Date(now);
-          const day = now.getDay(); // Sunday = 0
-          startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-          data = weekDays.map((d, idx) => {
-            const date = new Date(startOfWeek);
-            date.setDate(startOfWeek.getDate() + idx);
-            const sales = orders
-              .filter(o => {
-                const od = new Date(o.date);
-                return (
-                  od.getFullYear() === date.getFullYear() &&
-                  od.getMonth() === date.getMonth() &&
-                  od.getDate() === date.getDate()
-                );
-              })
-              .reduce((sum, o) => sum + o.totals.grandTotal, 0);
-            return { time: d, sales };
-          });
-        }
+      case "week": {
+        const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const startOfWeek = new Date(now);
+        const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+        startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); // Monday start
+        data = weekDays.map((label, idx) => {
+          const date = new Date(startOfWeek);
+          date.setDate(startOfWeek.getDate() + idx);
+          const sales = orders
+            .filter((o) => {
+              const d = o.__parsedDate ? o.__parsedDate : new Date(o.date || o.created_at || o.createdAt);
+              if (!d || isNaN(d.getTime())) return false;
+              return (
+                d.getFullYear() === date.getFullYear() &&
+                d.getMonth() === date.getMonth() &&
+                d.getDate() === date.getDate()
+              );
+            })
+            .reduce((sum, o) => sum + safeGrandTotal(o), 0);
+          return { time: label, sales };
+        });
         break;
+      }
 
-      case "month":
-        {
-          // Group by week in current month
-          const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
-          data = weeks.map((w, idx) => {
-            const start = new Date(now.getFullYear(), now.getMonth(), idx * 7 + 1);
-            const end = new Date(now.getFullYear(), now.getMonth(), (idx + 1) * 7);
-            const sales = orders
-              .filter(o => {
-                const od = new Date(o.date);
-                return od >= start && od <= end;
-              })
-              .reduce((sum, o) => sum + o.totals.grandTotal, 0);
-            return { time: w, sales };
-          });
-        }
+      case "month": {
+        const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
+        data = weeks.map((w, idx) => {
+          const start = new Date(now.getFullYear(), now.getMonth(), idx * 7 + 1);
+          // set end to last day of that 7-day block (clamp to month end naturally)
+          const end = new Date(now.getFullYear(), now.getMonth(), (idx + 1) * 7 + 1);
+          const sales = orders
+            .filter((o) => {
+              const d = o.__parsedDate ? o.__parsedDate : new Date(o.date || o.created_at || o.createdAt);
+              if (!d || isNaN(d.getTime())) return false;
+              return d >= start && d < end;
+            })
+            .reduce((sum, o) => sum + safeGrandTotal(o), 0);
+          return { time: w, sales };
+        });
         break;
+      }
 
       default:
         data = [];
@@ -156,8 +187,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Overview Card */}
-      <div className="card p-6 bg-gradient-to-r from-pink-400 to-orange-400 text-white">
+      <div className="card p-6 bg-gradient-to-r from-pink-400 to-orange-400 text-white rounded">
         <h2 className="text-xl font-semibold">Dashboard Overview</h2>
         <div className="flex justify-between mt-4 text-sm">
           <div>
@@ -180,12 +210,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Top Cards */}
-      <TopCards />
+      <TopCards orders={orders} />
 
-      {/* Sales Graph and Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card p-6">
+        <div className="lg:col-span-2 card p-6 bg-white rounded shadow">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Sales Graph</h3>
             <div className="flex gap-2">
@@ -207,7 +235,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <Line type="monotone" dataKey="sales" stroke="#ef4444" strokeWidth={3} />
-                <CartesianGrid stroke="#ccc" />
+                <CartesianGrid stroke="#eee" />
                 <XAxis dataKey="time" />
                 <YAxis />
                 <Tooltip />
@@ -216,7 +244,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <SummaryPanel />
+        <SummaryPanel orders={orders} />
       </div>
     </div>
   );

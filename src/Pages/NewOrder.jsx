@@ -11,14 +11,16 @@ export default function NewOrder() {
   }, [filter]);
 
   const fetchOrders = () => {
-    const url =
-      filter === "all" ? API : `${API}/filter?type=${filter}`;
+    const url = filter === "all" ? API : `${API}/filter?type=${filter}`;
 
     axios
       .get(url)
       .then((res) => setOrders(res.data))
       .catch((err) => console.log("Fetch error:", err));
   };
+
+  // Convert backend "2025-12-12 03:34:26" → valid JS date
+  const fixDate = (d) => new Date(d.replace(" ", "T"));
 
   return (
     <div className="p-6 space-y-6">
@@ -52,21 +54,39 @@ export default function NewOrder() {
                 <th className="p-2 border">Customer</th>
                 <th className="p-2 border">Payment</th>
                 <th className="p-2 border">Total</th>
-                <th className="p-2 border">Items</th>
+                <th className="p-2 border">Qty</th>
               </tr>
             </thead>
 
             <tbody>
               {orders.map((order, index) => (
-                <tr key={order._id} className="text-center">
+                <tr key={order.id} className="text-center">
                   <td className="p-2 border">{index + 1}</td>
+
+                  {/* FIXED DATE */}
                   <td className="p-2 border">
-                    {new Date(order.date).toLocaleString()}
+                    {fixDate(order.date).toLocaleString()}
                   </td>
-                  <td className="p-2 border">{order.customer?.name || "Walk-in"}</td>
-                  <td className="p-2 border">{order.payment?.method}</td>
-                  <td className="p-2 border font-semibold">₹{order.totals?.grandTotal}</td>
-                  <td className="p-2 border">{order.items?.length}</td>
+
+                  {/* FIXED CUSTOMER */}
+                  <td className="p-2 border">
+                    {order.customer_name || "Walk-in"}
+                  </td>
+
+                  {/* FIXED PAYMENT */}
+                  <td className="p-2 border">
+                    {order.payment_method || "N/A"}
+                  </td>
+
+                  {/* FIXED TOTAL */}
+                  <td className="p-2 border font-semibold">
+                    ₹{order.grand_total}
+                  </td>
+
+                  {/* FIXED ITEMS → `total_qty` */}
+                  <td className="p-2 border">
+                    {order.total_qty}
+                  </td>
                 </tr>
               ))}
             </tbody>
