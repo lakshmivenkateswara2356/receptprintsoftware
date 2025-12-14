@@ -207,20 +207,20 @@ function MenuItems() {
   };
 
   // Delete item
-  const handleDeleteItem = async (_id) => {
-    await fetch(`${API_URL}/${_id}`, { method: "DELETE" });
-    setItems(items.filter((i) => i._id !== _id));
+  const handleDeleteItem = async (id) => {
+    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    setItems(items.filter((i) => i.id !== id));
   };
 
   // Update item
   const handleUpdateItem = async () => {
     try {
-      const res = await fetch(`${API_URL}/${editingItem._id}`, {
+      const res = await fetch(`${API_URL}/${editingItem.id}`, {
         method: "PATCH",
         body: buildFormData(editingItem),
       });
       const updated = await res.json();
-      setItems(items.map(i => i._id === updated._id ? updated : i));
+      setItems(items.map(i => i.id === updated.id ? updated : i));
 
       if (!categories.includes(updated.category)) {
         setCategories(prev => [...prev, updated.category]);
@@ -259,7 +259,7 @@ function MenuItems() {
       {/* Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {filteredItems.map(item => (
-          <div key={item._id} className="border rounded-lg p-4 shadow-sm flex flex-col">
+          <div key={item.id} className="border rounded-lg p-4 shadow-sm flex flex-col">
             <img src={`http://localhost:5000${item.image}`} className="w-full h-40 object-cover rounded mb-3" alt="" />
             <h2 className="text-lg font-bold">{item.name}</h2>
             <p className="text-sm opacity-70">{item.category}</p>
@@ -269,7 +269,7 @@ function MenuItems() {
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={() => setEditingItem(item)} className="px-3 py-1 border rounded">Edit</button>
-              <button onClick={() => handleDeleteItem(item._id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+              <button onClick={() => handleDeleteItem(item.id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
             </div>
           </div>
         ))}

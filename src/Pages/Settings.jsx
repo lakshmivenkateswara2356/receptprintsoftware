@@ -1,5 +1,4 @@
-// src/Pages/Settings.jsx
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const API = "http://localhost:5000/api/settings";
@@ -15,7 +14,7 @@ export default function SettingsPage() {
     printerSize: "58mm",
   });
 
-  // Load settings from backend
+  // LOAD SETTINGS
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -23,11 +22,20 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const res = await axios.get(API);
+
       if (res.data) {
-        setSettings(res.data);
+        setSettings({
+          restaurantName: res.data.restaurant_name || "",
+          address: res.data.address || "",
+          gstNumber: res.data.gst_number || "",
+          phone: res.data.phone || "",
+          theme: res.data.theme || "light",
+          taxPercent: Number(res.data.tax_percent) || 5,
+          printerSize: res.data.printer_size || "58mm",
+        });
       }
     } catch (err) {
-      console.error("Failed to fetch settings", err);
+      console.error("Fetch settings failed", err);
     }
   };
 
@@ -37,20 +45,32 @@ export default function SettingsPage() {
 
   const saveSettings = async () => {
     try {
-      await axios.post(API, settings);
-      alert("Settings saved to server!");
+      // 🔥 CONVERT camelCase → snake_case
+      const payload = {
+        restaurant_name: settings.restaurantName,
+        address: settings.address,
+        gst_number: settings.gstNumber,
+        phone: settings.phone,
+        theme: settings.theme,
+        tax_percent: settings.taxPercent,
+        printer_size: settings.printerSize,
+      };
+
+      await axios.post(API, payload);
+      alert("Settings saved successfully!");
     } catch (err) {
-      alert("Failed to save settings!");
+      console.error(err);
+      alert("Failed to save settings");
     }
   };
 
   return (
-    <div className="">
+    <div className="p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-      {/* RESTAURANT DETAILS */}
+      {/* RESTAURANT INFO */}
       <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-3">Restaurant Information</h2>
+        <h2 className="text-lg font-semibold mb-3">Restaurant Info</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
@@ -62,7 +82,7 @@ export default function SettingsPage() {
 
           <input
             className="border p-2 rounded"
-            placeholder="Phone Number"
+            placeholder="Phone"
             value={settings.phone}
             onChange={(e) => update("phone", e.target.value)}
           />
@@ -83,60 +103,40 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <hr className="my-6" />
-
-      {/* TAX SETTINGS */}
+      {/* TAX */}
       <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-3">Tax Settings</h2>
-
-        <div className="flex gap-4 items-center">
-          <label className="font-medium">GST %:</label>
-          <input
-            type="number"
-            className="border p-2 rounded w-24"
-            value={settings.taxPercent}
-            onChange={(e) => update("taxPercent", Number(e.target.value))}
-          />
-        </div>
+        <h2 className="text-lg font-semibold mb-3">Tax</h2>
+        <input
+          type="number"
+          className="border p-2 rounded w-32"
+          value={settings.taxPercent}
+          onChange={(e) => update("taxPercent", Number(e.target.value))}
+        />
       </section>
 
-      <hr className="my-6" />
-
-      {/* THEME SETTINGS */}
+      {/* THEME */}
       <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-3">Theme</h2>
-
+        <h2 className="text-lg font-semibold mb-3">Theme</h2>
         <div className="flex gap-4">
-          <button
-            onClick={() => update("theme", "light")}
-            className={`px-4 py-2 rounded ${
-              settings.theme === "light"
-                ? "bg-black text-white"
-                : "bg-gray-200"
-            }`}
-          >
-            Light Mode
-          </button>
-
-          <button
-            onClick={() => update("theme", "dark")}
-            className={`px-4 py-2 rounded ${
-              settings.theme === "dark"
-                ? "bg-black text-white"
-                : "bg-gray-200"
-            }`}
-          >
-            Dark Mode
-          </button>
+          {["light", "dark"].map((t) => (
+            <button
+              key={t}
+              onClick={() => update("theme", t)}
+              className={`px-4 py-2 rounded ${
+                settings.theme === t
+                  ? "bg-black text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              {t.toUpperCase()}
+            </button>
+          ))}
         </div>
       </section>
 
-      <hr className="my-6" />
-
-      {/* PRINTER SETTINGS */}
+      {/* PRINTER */}
       <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-3">Printer Settings</h2>
-
+        <h2 className="text-lg font-semibold mb-3">Printer</h2>
         <select
           className="border p-2 rounded"
           value={settings.printerSize}
@@ -147,12 +147,10 @@ export default function SettingsPage() {
         </select>
       </section>
 
-      <hr className="my-6" />
-
-      {/* SAVE BUTTON */}
+      {/* SAVE */}
       <button
         onClick={saveSettings}
-        className="bg-black text-white px-6 py-2 rounded-lg shadow-md hover:bg-pink-700"
+        className="bg-black text-white px-6 py-2 rounded"
       >
         Save Settings
       </button>

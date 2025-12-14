@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Settings = require("../models/Settings");
 
-// GET Settings
+// GET SETTINGS
 router.get("/", async (req, res) => {
   try {
     const settings = await Settings.getSettings();
@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// CREATE or UPDATE Settings
+// CREATE OR UPDATE SETTINGS
 router.post("/", async (req, res) => {
   try {
     const existing = await Settings.getSettings();
@@ -24,7 +24,6 @@ router.post("/", async (req, res) => {
 
     const created = await Settings.createSettings(req.body);
     res.json(created);
-
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

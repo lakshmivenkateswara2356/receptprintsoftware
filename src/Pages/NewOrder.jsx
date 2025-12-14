@@ -11,35 +11,21 @@ export default function NewOrder() {
   }, [filter]);
 
   const fetchOrders = () => {
-    const url = filter === "all" ? API : `${API}/filter?type=${filter}`;
-
     axios
-      .get(url)
-      .then((res) => setOrders(res.data))
+      .get(API)
+      .then((res) => setOrders(res.data || []))
       .catch((err) => console.log("Fetch error:", err));
   };
 
-  // Convert backend "2025-12-12 03:34:26" → valid JS date
-  const fixDate = (d) => new Date(d.replace(" ", "T"));
+  // SAFE DATE HANDLER
+  const fixDate = (d) => {
+    if (!d) return "-";
+    return new Date(d).toLocaleString();
+  };
 
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-bold">Order Reports</h2>
-
-      {/* Filter Buttons */}
-      <div className="flex gap-3 mb-4">
-        {["all", "weekly", "monthly", "yearly"].map((f) => (
-          <button
-            key={f}
-            className={`px-4 py-1 rounded-lg border ${
-              filter === f ? "bg-black text-white" : ""
-            }`}
-            onClick={() => setFilter(f)}
-          >
-            {f.toUpperCase()}
-          </button>
-        ))}
-      </div>
 
       {/* Orders Table */}
       {orders.length === 0 ? (
@@ -63,29 +49,24 @@ export default function NewOrder() {
                 <tr key={order.id} className="text-center">
                   <td className="p-2 border">{index + 1}</td>
 
-                  {/* FIXED DATE */}
                   <td className="p-2 border">
-                    {fixDate(order.date).toLocaleString()}
+                    {fixDate(order.created_at)}
                   </td>
 
-                  {/* FIXED CUSTOMER */}
                   <td className="p-2 border">
                     {order.customer_name || "Walk-in"}
                   </td>
 
-                  {/* FIXED PAYMENT */}
                   <td className="p-2 border">
                     {order.payment_method || "N/A"}
                   </td>
 
-                  {/* FIXED TOTAL */}
                   <td className="p-2 border font-semibold">
                     ₹{order.grand_total}
                   </td>
 
-                  {/* FIXED ITEMS → `total_qty` */}
                   <td className="p-2 border">
-                    {order.total_qty}
+                    {order.total_quantity}
                   </td>
                 </tr>
               ))}

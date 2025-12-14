@@ -1,72 +1,58 @@
 const db = require("../db");
 
 module.exports = {
-  
-  // GET first settings row
-  getSettings: () => {
-    return new Promise((resolve, reject) => {
-      db.get("SELECT * FROM settings LIMIT 1", [], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+  // GET SETTINGS (single row)
+  getSettings: async () => {
+    const result = await db.query(
+      "SELECT * FROM settings ORDER BY id ASC LIMIT 1"
+    );
+    return result.rows[0];
   },
 
-  // CREATE settings
-  createSettings: (data) => {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        INSERT INTO settings 
-        (restaurant_name, address, gst_number, phone, theme, tax_percent, printer_size)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      const params = [
-        data.restaurantName,
+  // CREATE SETTINGS
+  createSettings: async (data) => {
+    const result = await db.query(
+      `INSERT INTO settings
+      (restaurant_name, address, gst_number, phone, theme, tax_percent, printer_size)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      RETURNING *`,
+      [
+        data.restaurant_name,
         data.address,
-        data.gstNumber,
-        data.phone,
-        data.theme || "light",
-        data.taxPercent || 2.5,
-        data.printerSize || "58mm"
-      ];
-
-      db.run(sql, params, function (err) {
-        if (err) reject(err);
-        else resolve({ id: this.lastID, ...data });
-      });
-    });
-  },
-
-  // UPDATE settings
-  updateSettings: (data) => {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE settings SET
-          restaurant_name = ?, 
-          address = ?, 
-          gst_number = ?, 
-          phone = ?, 
-          theme = ?, 
-          tax_percent = ?, 
-          printer_size = ?,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = 1
-      `;
-
-      const params = [
-        data.restaurantName,
-        data.address,
-        data.gstNumber,
+        data.gst_number,
         data.phone,
         data.theme,
-        data.taxPercent,
-        data.printerSize
-      ];
+        data.tax_percent,
+        data.printer_size,
+      ]
+    );
+    return result.rows[0];
+  },
 
-      db.run(sql, params, function (err) {
-        if (err) reject(err);
-        else resolve({ id: 1, ...data });
-      });
-    });
-  }
+  // UPDATE SETTINGS (ALWAYS id = 1)
+  updateSettings: async (data) => {
+    const result = await db.query(
+      `UPDATE settings SET
+        restaurant_name=$1,
+        address=$2,
+        gst_number=$3,
+        phone=$4,
+        theme=$5,
+        tax_percent=$6,
+        printer_size=$7,
+        updated_at=CURRENT_TIMESTAMP
+      WHERE id=1
+      RETURNING *`,
+      [
+        data.restaurant_name,
+        data.address,
+        data.gst_number,
+        data.phone,
+        data.theme,
+        data.tax_percent,
+        data.printer_size,
+      ]
+    );
+    return result.rows[0];
+  },
 };
