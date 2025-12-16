@@ -1,48 +1,20 @@
-// const sqlite3 = require("sqlite3").verbose();
-// const path = require("path");
-
-// const dbPath = path.join(__dirname, "../database.sqlite");
-
-// const db = new sqlite3.Database(dbPath, (err) => {
-//   if (err) console.error("SQLite Error:", err);
-//   else console.log("SQLite Connected");
-// });
-
-
-// db.serialize(() => {
-//   db.run(`
-//     CREATE TABLE IF NOT EXISTS recipe_items (
-//       id INTEGER PRIMARY KEY AUTOINCREMENT,
-//       name TEXT NOT NULL,
-//       quantity INTEGER NOT NULL DEFAULT 1,
-//       category TEXT NOT NULL,
-//       price REAL NOT NULL,
-//       image TEXT NOT NULL,
-//       description TEXT NOT NULL,
-//       tax REAL NOT NULL,
-//       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-//       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-//     )
-//   `);
-// });
-
-// module.exports = db;
-
-
 const { Pool } = require("pg");
 
+// Use Render DATABASE_URL in production, fallback to local DB for development
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "pos_db",
-  password: "abcd123",
-  port: 5432,
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:abcd123@localhost:5432/pos_db",
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
 pool.on("connect", () => {
   console.log("PostgreSQL Connected");
 });
 
+pool.on("error", (err) => {
+  console.error("PostgreSQL Error:", err);
+});
+
+// Export query function for your app
 module.exports = {
   query: (text, params) => pool.query(text, params),
 };
