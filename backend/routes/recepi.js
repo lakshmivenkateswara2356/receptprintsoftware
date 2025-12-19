@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const RecipeItem = require("../models/recipiitems");
+const RecipeItem = require("../models/RecepiesItems");
 const upload = require("../middleware/upload");
 const cloudinary = require("../config/cloudinary");
 
