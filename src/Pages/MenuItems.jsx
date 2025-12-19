@@ -1,116 +1,140 @@
 import { useState, useEffect } from "react";
 
-const API_URL = "http://localhost:5000/api/recipe-items";
+const API_URL = "https://receptprintsoftware-2.onrender.com/api/recipe-items";
 
-// Modal for Add/Edit Item
-function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenAddCategory }) {
+/* ===============================
+   ADD CATEGORY MODAL
+================================ */
+function AddCategoryModal({ value, setValue, onClose, onSave }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded w-80">
+        <h2 className="text-lg font-bold mb-4">Add Category</h2>
+
+        <input
+          className="w-full border p-2 mb-4"
+          placeholder="Category name"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+
+        <div className="flex justify-end gap-3">
+          <button className="border px-3 py-1" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="bg-black text-white px-3 py-1" onClick={onSave}>
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===============================
+   ITEM MODAL
+================================ */
+function ItemModal({
+  title,
+  item,
+  setItem,
+  categories,
+  onClose,
+  onSave,
+  setOpenAddCategory,
+}) {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
     setLoading(true);
-    try {
-      await onSave();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    await onSave();
+    setLoading(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg w-96">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded w-96">
         <h2 className="text-xl font-bold mb-4">{title}</h2>
 
         <input
-          type="text"
-          placeholder="Item Name"
-          className="w-full p-2 border rounded mb-3"
-          value={item.name}
+          className="w-full border p-2 mb-3"
+          placeholder="Item name"
+          value={item.name || ""}
           onChange={(e) => setItem({ ...item, name: e.target.value })}
         />
 
         <select
-          className="w-full p-2 border rounded mb-3"
-          value={item.category}
+          className="w-full border p-2 mb-3"
+          value={item.category || ""}
           onChange={(e) => {
-            if (e.target.value === "__add_new__") return setOpenAddCategory(true);
+            if (e.target.value === "__add_new__") {
+              setOpenAddCategory(true);
+              return;
+            }
             setItem({ ...item, category: e.target.value });
           }}
         >
           <option value="">Select Category</option>
-          {categories.filter(c => c !== "All").map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
+          {categories
+            .filter((c) => c !== "All")
+            .map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           <option value="__add_new__">+ Add New Category</option>
         </select>
 
         <input
           type="number"
+          className="w-full border p-2 mb-3"
           placeholder="Price"
-          className="w-full p-2 border rounded mb-3"
-          value={item.price}
+          value={item.price || ""}
           onChange={(e) => setItem({ ...item, price: e.target.value })}
         />
 
         <input
-          type="text"
+          className="w-full border p-2 mb-3"
           placeholder="Description"
-          className="w-full p-2 border rounded mb-3"
-          value={item.description}
-          onChange={(e) => setItem({ ...item, description: e.target.value })}
+          value={item.description || ""}
+          onChange={(e) =>
+            setItem({ ...item, description: e.target.value })
+          }
         />
 
-        <label className="font-semibold block mb-1">Upload Image</label>
         <input
           type="file"
           accept="image/*"
-          className="w-full p-2 border rounded mb-3"
+          className="w-full border p-2 mb-3"
           onChange={(e) => {
             const file = e.target.files[0];
-            if (file) setItem({ ...item, imageFile: file, image: URL.createObjectURL(file) });
+            if (file) {
+              setItem({
+                ...item,
+                imageFile: file,
+                imagePreview: URL.createObjectURL(file),
+              });
+            }
           }}
         />
 
-        {item.image && (
+        {(item.imagePreview || item.image) && (
           <img
-            src={item.image.startsWith("blob") ? item.image : `http://localhost:5000${item.image}`}
-            className="w-32 h-32 object-cover rounded mb-3 border"
-            alt=""
+            src={item.imagePreview || item.image}
+            alt="preview"
+            className="w-32 h-32 object-cover rounded mb-3"
           />
         )}
 
-        <div className="flex justify-end gap-3 mt-4">
-          <button className="px-4 py-2 border rounded" onClick={onClose} disabled={loading}>
+        <div className="flex justify-end gap-3">
+          <button className="border px-3 py-1" onClick={onClose}>
             Cancel
           </button>
           <button
-            className="px-4 py-2 bg-black text-white rounded flex items-center justify-center gap-2"
+            className="bg-black text-white px-3 py-1"
             onClick={handleSave}
             disabled={loading}
           >
-            {loading && (
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                ></path>
-              </svg>
-            )}
             {loading ? "Saving..." : "Save"}
           </button>
         </div>
@@ -119,56 +143,53 @@ function ItemModal({ title, item, setItem, categories, onClose, onSave, setOpenA
   );
 }
 
-// Main MenuItems Component
-function MenuItems() {
+/* ===============================
+   MAIN COMPONENT
+================================ */
+export default function MenuItems() {
+  const [items, setItems] = useState([]);
   const [categories, setCategories] = useState(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [items, setItems] = useState([]);
 
   const [openAddItem, setOpenAddItem] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
   const [openAddCategory, setOpenAddCategory] = useState(false);
   const [tempCategory, setTempCategory] = useState("");
 
-  const [newItem, setNewItem] = useState({
+  const emptyItem = {
     name: "",
     quantity: 1,
     category: "",
     price: "",
     description: "",
     tax: 0,
+    image: "",
     imageFile: null,
-    image: ""
-  });
+    imagePreview: "",
+  };
 
-  const [editingItem, setEditingItem] = useState(null);
+  const [newItem, setNewItem] = useState(emptyItem);
 
-  // Fetch items from backend and set dynamic categories
+  /* ===============================
+     FETCH
+  ================================ */
   const fetchItems = async () => {
-    try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      setItems(data);
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    setItems(data || []);
 
-      const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
-      setCategories(["All", ...uniqueCategories]);
-    } catch (err) {
-      console.error(err);
-    }
+    const cats = Array.from(new Set((data || []).map((i) => i.category)));
+    setCategories(["All", ...cats]);
   };
 
   useEffect(() => {
     fetchItems();
   }, []);
 
-  // Add new category manually
-  const handleAddCategory = () => {
-    if (!tempCategory.trim()) return alert("Enter category name");
-    setCategories([...categories, tempCategory.trim()]);
-    setTempCategory("");
-    setOpenAddCategory(false);
-  };
-
-  // Convert item to FormData for backend
+  /* ===============================
+     FORM DATA
+  ================================ */
   const buildFormData = (item) => {
     const fd = new FormData();
     fd.append("name", item.name);
@@ -181,112 +202,128 @@ function MenuItems() {
     return fd;
   };
 
-  // Add new item
+  /* ===============================
+     ADD / UPDATE / DELETE
+  ================================ */
   const handleAddItem = async () => {
-    if (!newItem.name || !newItem.category || !newItem.price || !newItem.imageFile) {
-      return alert("Please fill all fields and select an image");
-    }
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: buildFormData(newItem),
-      });
-      const saved = await res.json();
-      setItems([...items, saved]);
-
-      if (!categories.includes(saved.category)) {
-        setCategories(prev => [...prev, saved.category]);
-      }
-
-      setNewItem({ name: "", quantity: 1, category: "", price: "", description: "", tax: 0, imageFile: null, image: "" });
-      setOpenAddItem(false);
-    } catch (err) {
-      console.error(err);
-    }
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: buildFormData(newItem),
+    });
+    const saved = await res.json();
+    setItems((prev) => [saved, ...prev]);
+    setNewItem(emptyItem);
+    setOpenAddItem(false);
   };
 
-  // Delete item
-  const handleDeleteItem = async (id) => {
-    try {
-      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-      setItems(items.filter((i) => i.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Update item
   const handleUpdateItem = async () => {
-    try {
-      if (!editingItem.name || !editingItem.category || !editingItem.price) {
-        return alert("Please fill all required fields");
-      }
-
-      const res = await fetch(`${API_URL}/${editingItem.id}`, {
-        method: "PATCH",
-        body: buildFormData(editingItem),
-      });
-
-      const updated = await res.json();
-      setItems(items.map(i => i.id === updated.id ? updated : i));
-      setEditingItem(null);
-
-      if (!categories.includes(updated.category)) {
-        setCategories(prev => [...prev, updated.category]);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    const res = await fetch(`${API_URL}/${editingItem.id}`, {
+      method: "PATCH",
+      body: buildFormData(editingItem),
+    });
+    const updated = await res.json();
+    setItems((prev) =>
+      prev.map((i) => (i.id === updated.id ? updated : i))
+    );
+    setEditingItem(null);
   };
 
-  const filteredItems = activeCategory === "All"
-    ? items
-    : items.filter(i => i.category === activeCategory);
+  const handleDeleteItem = async (id) => {
+    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
 
+  /* ===============================
+     ADD CATEGORY
+  ================================ */
+  const handleAddCategory = () => {
+    if (!tempCategory.trim()) return;
+
+    setCategories((prev) => [...prev, tempCategory]);
+
+    if (openAddItem) {
+      setNewItem((p) => ({ ...p, category: tempCategory }));
+    } else if (editingItem) {
+      setEditingItem((p) => ({ ...p, category: tempCategory }));
+    }
+
+    setTempCategory("");
+    setOpenAddCategory(false);
+  };
+
+  const filteredItems =
+    activeCategory === "All"
+      ? items
+      : items.filter((i) => i.category === activeCategory);
+
+  /* ===============================
+     UI
+  ================================ */
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-bold">Menu Items</h1>
-        <button className="px-4 py-2 bg-black text-white rounded" onClick={() => setOpenAddItem(true)}>+ Add Item</button>
+        <button
+          className="bg-black text-white px-4 py-2"
+          onClick={() => setOpenAddItem(true)}
+        >
+          + Add Item
+        </button>
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-3 mb-5 overflow-x-auto">
-        {categories.map(cat => (
+      <div className="flex gap-3 mb-4 overflow-x-auto">
+        {categories.map((c) => (
           <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2 rounded-full border ${activeCategory === cat ? "bg-black text-white" : "bg-white text-black"}`}
+            key={c}
+            onClick={() => setActiveCategory(c)}
+            className={`px-3 py-1 border rounded-full ${
+              activeCategory === c ? "bg-black text-white" : ""
+            }`}
           >
-            {cat}
+            {c}
           </button>
         ))}
       </div>
 
-      {/* Items Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {filteredItems.map(item => (
-          <div key={item.id} className="border rounded-lg p-4 shadow-sm flex flex-col">
-            <img src={`http://localhost:5000${item.image}`} className="w-full h-40 object-cover rounded mb-3" alt="" />
-            <h2 className="text-lg font-bold">{item.name}</h2>
-            <p className="text-sm opacity-70">{item.category}</p>
-            <div className="flex justify-between mt-2">
-              <span>Qty: {item.quantity}</span>
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        {filteredItems.map((item) => (
+          <div key={item.id} className="border p-2 rounded">
+            <img
+              src={item.image}
+              alt={item.name}
+              className="w-full h-24 object-cover rounded mb-2"
+            />
+            <h3 className="font-bold text-sm">{item.name}</h3>
+            <p className="text-xs">{item.category}</p>
+
+            <div className="flex justify-between text-xs mt-1">
               <span>₹{item.price}</span>
+              <span>Qty {item.quantity}</span>
             </div>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setEditingItem(item)} className="px-3 py-1 border rounded">Edit</button>
-              <button onClick={() => handleDeleteItem(item.id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+
+            <div className="flex gap-2 mt-2">
+              <button
+                className="border px-2 text-xs"
+                onClick={() =>
+                  setEditingItem({ ...item, imagePreview: "" })
+                }
+              >
+                Edit
+              </button>
+              <button
+                className="bg-red-600 text-white px-2 text-xs"
+                onClick={() => handleDeleteItem(item.id)}
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modals */}
       {openAddItem && (
         <ItemModal
-          title="Add New Item"
+          title="Add Item"
           item={newItem}
           setItem={setNewItem}
           categories={categories}
@@ -309,25 +346,13 @@ function MenuItems() {
       )}
 
       {openAddCategory && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-          <div className="bg-white p-5 w-80 rounded">
-            <h2 className="font-bold mb-3 text-lg">Add Category</h2>
-            <input
-              type="text"
-              placeholder="Category Name"
-              className="w-full p-2 border rounded mb-3"
-              value={tempCategory}
-              onChange={(e) => setTempCategory(e.target.value)}
-            />
-            <div className="flex justify-end gap-3">
-              <button className="px-4 py-2 border rounded" onClick={() => setOpenAddCategory(false)}>Cancel</button>
-              <button className="px-4 py-2 bg-black text-white rounded" onClick={handleAddCategory}>Add</button>
-            </div>
-          </div>
-        </div>
+        <AddCategoryModal
+          value={tempCategory}
+          setValue={setTempCategory}
+          onClose={() => setOpenAddCategory(false)}
+          onSave={handleAddCategory}
+        />
       )}
     </div>
   );
 }
-
-export default MenuItems;
