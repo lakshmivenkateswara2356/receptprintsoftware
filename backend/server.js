@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/recipe-items", require("./routes/recipi"));
+app.use("/api/recipe-items", require("./routes/recepi"));
 app.use("/api/settings", require("./routes/settingsRoutes"));
 app.use("/api/orders", require("./routes/order"));
 
