@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Order = require("../models/order");
+const Order = require("../models/Order");
 
 /* ================= DELETE BY DATE FILTER ================= */
 router.delete("/filter/:type", async (req, res) => {
