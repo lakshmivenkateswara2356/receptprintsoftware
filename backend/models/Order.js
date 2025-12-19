@@ -50,8 +50,38 @@ const createOrder = async (order) => {
   return { orderId: result.rows[0].id };
 };
 
-/* ================= EXPORT PROPERLY ================= */
+/* ================= DELETE SINGLE ORDER ================= */
+const deleteOrderById = async (id) => {
+  await db.query("DELETE FROM orders WHERE id = $1", [id]);
+};
+
+/* ================= DELETE ORDERS BY FILTER ================= */
+const deleteOrdersByFilter = async (type) => {
+  let query = "";
+
+  if (type === "today") {
+    query = `DELETE FROM orders WHERE DATE(created_at) = CURRENT_DATE`;
+  } else if (type === "month") {
+    query = `
+      DELETE FROM orders
+      WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+      AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+    `;
+  } else if (type === "year") {
+    query = `
+      DELETE FROM orders
+      WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+    `;
+  } else {
+    throw new Error("Invalid filter type");
+  }
+
+  await db.query(query);
+};
+
 module.exports = {
   getAllOrders,
   createOrder,
+  deleteOrderById,
+  deleteOrdersByFilter,
 };
