@@ -1,42 +1,42 @@
 const express = require("express");
 const router = express.Router();
-const Order = require("../models/Order");
+const Order = require("../models/order");
 
-// CREATE ORDER
-router.post("/", async (req, res) => {
+/* ================= DELETE BY DATE FILTER ================= */
+router.delete("/filter/:type", async (req, res) => {
   try {
-    const result = await Order.createOrder(req.body);
-    res.status(201).json({ orderId: result.orderId });
+    await Order.deleteOrdersByFilter(req.params.type);
+    res.json({ message: "Orders deleted successfully" });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// GET ALL ORDERS
+/* ================= DELETE SINGLE ORDER ================= */
+router.delete("/:id", async (req, res) => {
+  try {
+    await Order.deleteOrderById(req.params.id);
+    res.json({ message: "Order deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/* ================= CREATE ORDER ================= */
+router.post("/", async (req, res) => {
+  try {
+    const result = await Order.createOrder(req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+/* ================= GET ALL ORDERS ================= */
 router.get("/", async (req, res) => {
   try {
     const orders = await Order.getAllOrders();
     res.json(orders);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// FILTER ORDERS
-router.get("/filter", async (req, res) => {
-  try {
-    const orders = await Order.filterOrders(req.query.type);
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// GET ORDER ITEMS
-router.get("/:id/items", async (req, res) => {
-  try {
-    const items = await Order.getOrderItems(req.params.id);
-    res.json(items);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
