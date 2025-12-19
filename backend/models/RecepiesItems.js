@@ -21,8 +21,8 @@ exports.getById = async (id) => {
 exports.create = async (item) => {
   const { rows } = await db.query(
     `INSERT INTO public.recipe_items
-     (name, quantity, category, price, image, description, tax)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     (name, quantity, category, price, image, image_id, description, tax)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING *`,
     [
       item.name,
@@ -30,6 +30,7 @@ exports.create = async (item) => {
       item.category,
       item.price,
       item.image,
+      item.image_id,
       item.description,
       item.tax,
     ]
@@ -46,10 +47,11 @@ exports.update = async (id, data) => {
       category=$3,
       price=$4,
       image=$5,
-      description=$6,
-      tax=$7,
+      image_id=$6,
+      description=$7,
+      tax=$8,
       updated_at=CURRENT_TIMESTAMP
-     WHERE id=$8
+     WHERE id=$9
      RETURNING *`,
     [
       data.name,
@@ -57,6 +59,7 @@ exports.update = async (id, data) => {
       data.category,
       data.price,
       data.image,
+      data.image_id,
       data.description,
       data.tax,
       id,
@@ -68,20 +71,4 @@ exports.update = async (id, data) => {
 // DELETE
 exports.delete = async (id) => {
   await db.query("DELETE FROM public.recipe_items WHERE id=$1", [id]);
-};
-
-// INCREASE
-exports.increaseQuantity = async (id) => {
-  await db.query(
-    "UPDATE public.recipe_items SET quantity = quantity + 1 WHERE id=$1",
-    [id]
-  );
-};
-
-// DECREASE
-exports.decreaseQuantity = async (id) => {
-  await db.query(
-    "UPDATE public.recipe_items SET quantity = GREATEST(quantity - 1, 0) WHERE id=$1",
-    [id]
-  );
 };
