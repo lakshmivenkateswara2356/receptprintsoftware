@@ -1,22 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const RecipeItem = require("../models/RecepiesItems");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-
-// ---- Upload Settings ----
-const uploadDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
-});
-const upload = multer({ storage });
-
-// ---------------------- ROUTES ----------------------
+const RecipeItem = require("../models/recipiitems");
+const upload = require("../middleware/upload");
+const cloudinary = require("../config/cloudinary");
 
 // GET ALL
 router.get("/", async (req, res) => {
@@ -31,17 +17,19 @@ router.get("/", async (req, res) => {
 // CREATE
 router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const { name, quantity, category, price, description, tax } = req.body;
-    if (!req.file) return res.status(400).json({ message: "Image required" });
+    if (!req.file) {
+      return res.status(400).json({ message: "Image required" });
+    }
 
     const newItem = {
-      name,
-      quantity,
-      category,
-      price,
-      description,
-      tax,
-      image: `/uploads/${req.file.filename}`,
+      name: req.body.name,
+      quantity: req.body.quantity,
+      category: req.body.category,
+      price: req.body.price,
+      description: req.body.description,
+      tax: req.body.tax,
+      image: req.file.path,          // ✅ Cloudinary URL
+      image_id: req.file.filename,   // ✅ Cloudinary public_id
     };
 
     const saved = await RecipeItem.create(newItem);
@@ -57,10 +45,9 @@ router.patch("/:id", upload.single("image"), async (req, res) => {
     const existing = await RecipeItem.getById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Item not found" });
 
-    // Remove old image if replaced
-    if (req.file && existing.image) {
-      const oldPath = path.join(__dirname, `..${existing.image}`);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    // delete old image if replaced
+    if (req.file && existing.image_id) {
+      await cloudinary.uploader.destroy(existing.image_id);
     }
 
     const updated = {
@@ -70,7 +57,8 @@ router.patch("/:id", upload.single("image"), async (req, res) => {
       price: req.body.price || existing.price,
       description: req.body.description || existing.description,
       tax: req.body.tax || existing.tax,
-      image: req.file ? `/uploads/${req.file.filename}` : existing.image,
+      image: req.file ? req.file.path : existing.image,
+      image_id: req.file ? req.file.filename : existing.image_id,
     };
 
     const result = await RecipeItem.update(req.params.id, updated);
@@ -86,9 +74,8 @@ router.delete("/:id", async (req, res) => {
     const item = await RecipeItem.getById(req.params.id);
     if (!item) return res.status(404).json({ message: "Item not found" });
 
-    if (item.image) {
-      const filePath = path.join(__dirname, `..${item.image}`);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (item.image_id) {
+      await cloudinary.uploader.destroy(item.image_id);
     }
 
     await RecipeItem.delete(req.params.id);
@@ -96,20 +83,6 @@ router.delete("/:id", async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-});
-
-// INCREASE
-router.post("/:id/increase", async (req, res) => {
-  await RecipeItem.increaseQuantity(req.params.id);
-  const updated = await RecipeItem.getById(req.params.id);
-  res.json(updated);
-});
-
-// DECREASE
-router.post("/:id/decrease", async (req, res) => {
-  await RecipeItem.decreaseQuantity(req.params.id);
-  const updated = await RecipeItem.getById(req.params.id);
-  res.json(updated);
 });
 
 module.exports = router;
