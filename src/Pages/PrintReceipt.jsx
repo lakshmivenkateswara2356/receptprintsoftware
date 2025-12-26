@@ -1,9 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const API_SETTINGS = "https://receptprintsoftware-2.onrender.com/api/settings";
 
 export default function PrintReceipt() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [restaurantSettings, setRestaurantSettings] = useState(null);
 
   // Get data from location.state or localStorage fallback
   const data = location.state || JSON.parse(localStorage.getItem("lastReceipt"));
@@ -14,7 +18,27 @@ export default function PrintReceipt() {
       return () => clearTimeout(t);
     }
 
+    // Save last receipt
     localStorage.setItem("lastReceipt", JSON.stringify(data));
+
+    // Fetch restaurant settings for phone, GST, etc.
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get(API_SETTINGS);
+        if (res.data) {
+          setRestaurantSettings({
+            name: res.data.restaurant_name || "Restaurant Name",
+            address: res.data.address || "-",
+            phone: res.data.phone || "-",
+            gst: res.data.gst_number || "-",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch restaurant settings", err);
+      }
+    };
+    fetchSettings();
+
     const printTimeout = setTimeout(() => window.print(), 600);
     return () => clearTimeout(printTimeout);
   }, [data, navigate]);
@@ -23,7 +47,8 @@ export default function PrintReceipt() {
     return <div className="p-6 text-center">No receipt data. Redirecting...</div>;
   }
 
-  const { restaurant, customer, payment, items, totals, date } = data;
+  const { customer, payment, items, totals, date } = data;
+  const restaurant = restaurantSettings || data.restaurant;
 
   return (
     <div id="print-area">
@@ -33,8 +58,15 @@ export default function PrintReceipt() {
       >
         {/* Restaurant Info */}
         <div className="text-center">
-          <h2 className="text-xl font-bold">{restaurant?.name || "Restaurant Name"}</h2>
+          <h2
+            className="text-2xl font-bold tracking-wide"
+            style={{ fontFamily: '"Dancing Script", cursive' }}
+          >
+            {restaurant?.name || "Restaurant Name"}
+          </h2>
+          <p>Family Restaurant</p>
           <div className="text-sm">{restaurant?.address || "-"}</div>
+          <div className="text-sm">Phone: {restaurant?.phone || "-"}</div>
           <div className="text-sm">GST: {restaurant?.gst || "-"}</div>
         </div>
 
@@ -42,10 +74,15 @@ export default function PrintReceipt() {
 
         {/* Customer & Payment */}
         <div className="text-sm">
-          <div><strong>Date:</strong> {date ? new Date(date).toLocaleString() : "-"}</div>
-          <div><strong>Customer:</strong> {customer?.name || "Walk-in"}</div>
-          <div><strong>Phone:</strong> {customer?.phone || "-"}</div>
-          <div><strong>Payment:</strong> {payment?.method || "-"}</div>
+          <div>
+            <strong>Date:</strong> {date ? new Date(date).toLocaleString() : "-"}
+          </div>
+          <div>
+            <strong>Customer:</strong> {customer?.name || "Walk-in"}
+          </div>
+          <div>
+            <strong>Payment:</strong> {payment?.method || "-"}
+          </div>
         </div>
 
         <hr className="my-3" />
