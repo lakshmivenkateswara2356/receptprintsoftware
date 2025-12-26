@@ -15,6 +15,7 @@ function AddCategoryModal({ value, setValue, onClose, onSave }) {
           className="w-full border p-2 mb-4"
           placeholder="Category name"
           value={value}
+          maxLength={20}
           onChange={(e) => setValue(e.target.value)}
         />
 
@@ -45,11 +46,134 @@ function ItemModal({
 }) {
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async () => {
-    setLoading(true);
-    await onSave();
-    setLoading(false);
-  };
+ const handleSave = async () => {
+  // ❌ Validation first
+  if (
+    !item.name?.trim() ||
+    !item.category?.trim() ||
+    !item.price?.trim() ||
+    item.imageFile // or item.image if editing existing
+  ) {
+    alert("Please fill all required fields!");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    await onSave(); // your existing save function
+  } catch (error) {
+    console.error(error);
+    alert("Error saving item");
+  }
+  setLoading(false);
+};
+
+return (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded w-96">
+      <h2 className="text-xl font-bold mb-4">{title}</h2>
+
+      <input
+        className="w-full border p-2 mb-3"
+        placeholder="Item name"
+        value={item.name || ""}
+        maxLength={35}
+        onChange={(e) => setItem({ ...item, name: e.target.value })}
+      />
+
+      <select
+  className="w-full border p-2 mb-3"
+  value={item.category || ""}
+  onChange={(e) => {
+    const value = e.target.value;
+
+    if (value === "__add_new__") {
+      setOpenAddCategory(true);
+      return;
+    }
+
+    // Enforce max 30 characters
+    if (value.length <= 30) {
+      setItem({ ...item, category: value });
+    } else {
+      alert("Category cannot exceed 30 characters");
+    }
+  }}
+>
+  <option value="">Select Category</option>
+  {categories
+    .filter((c) => c !== "All")
+    .map((c) => (
+      <option key={c} value={c}>
+        {c.length > 30 ? c.slice(0, 30) : c}
+      </option>
+    ))}
+  <option value="__add_new__">+ Add New Category</option>
+</select>
+
+
+      <input
+        type="number"
+        className="w-full border p-2 mb-3"
+        placeholder="Price"
+        value={item.price || ""}
+        onChange={(e) => {
+          const value = e.target.value.replace(/\D/g, ""); // digits only
+          if (value.length <= 4) {
+            setItem({ ...item, price: value });
+          }
+        }}
+      />
+
+      <input
+        className="w-full border p-2 mb-3"
+        placeholder="Description (Optional)"
+        value={item.description || ""}
+        onChange={(e) =>
+          setItem({ ...item, description: e.target.value })
+        }
+      />
+
+      <input
+        type="file"
+        accept="image/*"
+        className="w-full border p-2 mb-3"
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file) {
+            setItem({
+              ...item,
+              imageFile: file,
+              imagePreview: URL.createObjectURL(file),
+            });
+          }
+        }}
+      />
+
+      {(item.imagePreview || item.image) && (
+        <img
+          src={item.imagePreview || item.image}
+          alt="preview"
+          className="w-32 h-32 object-cover rounded mb-3"
+        />
+      )}
+
+      <div className="flex justify-end gap-3">
+        <button className="border px-3 py-1" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className="bg-black text-white px-3 py-1"
+          onClick={handleSave}
+          disabled={loading}
+        >
+          {loading ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -60,6 +184,7 @@ function ItemModal({
           className="w-full border p-2 mb-3"
           placeholder="Item name"
           value={item.name || ""}
+          maxLength={20}
           onChange={(e) => setItem({ ...item, name: e.target.value })}
         />
 
@@ -85,13 +210,19 @@ function ItemModal({
           <option value="__add_new__">+ Add New Category</option>
         </select>
 
-        <input
-          type="number"
-          className="w-full border p-2 mb-3"
-          placeholder="Price"
-          value={item.price || ""}
-          onChange={(e) => setItem({ ...item, price: e.target.value })}
-        />
+       <input
+  type="number"
+  className="w-full border p-2 mb-3"
+  placeholder="Price"
+  value={item.price || ""}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, ""); // allow only digits
+    if (value.length <= 4) {
+      setItem({ ...item, price: value });
+    }
+  }}
+/>
+
 
         <input
           className="w-full border p-2 mb-3"
@@ -229,9 +360,11 @@ export default function MenuItems() {
   };
 
   const handleDeleteItem = async (id) => {
-    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  };
+  await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+
+  await fetchItems(); // 🔄 reload data only
+};
+
 
   /* ===============================
      ADD CATEGORY
@@ -285,7 +418,7 @@ export default function MenuItems() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-9 gap-1">
         {filteredItems.map((item) => (
           <div key={item.id} className="border p-2 rounded">
             <img
@@ -293,7 +426,7 @@ export default function MenuItems() {
               alt={item.name}
               className="w-full h-24 object-cover rounded mb-2"
             />
-            <h3 className="font-bold text-sm">{item.name}</h3>
+            <h3 className="font-bold text-xs">{item.name}</h3>
             <p className="text-xs">{item.category}</p>
 
             <div className="flex justify-between text-xs mt-1">
@@ -325,6 +458,7 @@ export default function MenuItems() {
         <ItemModal
           title="Add Item"
           item={newItem}
+          maxlength={15}
           setItem={setNewItem}
           categories={categories}
           onClose={() => setOpenAddItem(false)}
